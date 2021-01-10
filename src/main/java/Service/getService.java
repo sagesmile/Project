@@ -149,7 +149,7 @@ public class getService {
         jsonObject.put("challenge",challenge[temp]);
         try {
             String url = host+createOrder+AESUtil.getTssign(createOrder);
-            System.out.println(HttpUtil.send(url, jsonObject, token));
+//            System.out.println(HttpUtil.send(url, jsonObject, token));
         } catch (Exception e) {
             e.printStackTrace();
         }
