@@ -32,7 +32,7 @@ public class getService {
         String getdetail = service.getdetail("5a63d3b9c11a47968c13fa7e65452dee");
         ArrayList<JSONObject> jsonObjects = service.initOrder(getdetail);
         for (int i = 0; i < jsonObjects.toArray().length; i++) {
-//            System.out.println(jsonObjects.get(i));
+            System.out.println(jsonObjects.get(i));
             service.pushOrder(token[i],jsonObjects.get(i) );
         }
     }
