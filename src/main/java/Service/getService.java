@@ -26,7 +26,6 @@ public class getService {
     private static String commodityUrl = "/shopCommodity/queryShopCommodityDetail/";
     private static String createOrder = "/order/create";
     private static int temp = 0;
-    private static int stock = 1;
 
     public static void main(String[] args) {
         getService service = new getService();
