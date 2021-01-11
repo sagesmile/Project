@@ -9,6 +9,10 @@ import utils.HttpUtil;
 import java.net.HttpURLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.IntStream;
 
 public class getService {
 
@@ -29,26 +33,41 @@ public class getService {
 
     public static void main(String[] args) {
         getService service = new getService();
-        String getdetail = service.getdetail("5a63d3b9c11a47968c13fa7e65452dee");
-        ArrayList<JSONObject> jsonObjects = service.initOrder(getdetail);
-        for (int i = 0; i < jsonObjects.toArray().length; i++) {
-            System.out.println(jsonObjects.get(i));
-            service.pushOrder(token[i],jsonObjects.get(i) );
-        }
-    }
-
-    private String search(){
-        String commodyId = null;
+//        String getdetail = service.getdetail("506ca36edc794a43ae0395c7b6133272");
+//        ArrayList<JSONObject> jsonObjects = service.initOrder(getdetail);
         try {
-            HttpURLConnection conn = HttpUtil.getConn(searchUrl, null);
-            String searchResult = HttpUtil.get(conn);
-            System.out.println(searchResult);
-            JSONObject jsonObject = JSONObject.parseObject(searchResult);
-            commodyId =  jsonObject.getJSONObject("data").getJSONObject("spu").getJSONArray("list").getJSONObject(0).getString("id");
+            System.out.println(service.search(null));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return commodyId;
+//        for (int i = 0; i < jsonObjects.toArray().length; i++) {
+//            System.out.println(jsonObjects.get(i));
+//            service.pushOrder(token[i],jsonObjects.get(i) );
+//        }
+
+//           Integer status = JSONObject.parseObject(getdetail).getJSONObject("data").getInteger("status");
+
+    }
+
+    private  String search(String keyword) throws Exception{
+        String url = host+searchUrl;
+        HashMap<String, String> map = new HashMap<>();
+        map.put("searchKeyword","");
+        map.put("current","1");
+        map.put("pageSize","5");
+        map.put("sortColumn","");
+        map.put("sortType","asc");
+        map.put("filterIds","TS300301");
+        map.put("shopNo","");//NKND20
+        map.put("tssign",AESUtil.getTssign(searchUrl).substring(8));
+        HttpURLConnection conn = HttpUtil.getConn(url, map);
+        String result = HttpUtil.get(conn);
+        ArrayList<String> idList = new ArrayList<>();
+        JSONArray jsonArray = JSONObject.parseObject(result).getJSONObject("data").getJSONObject("spu").getJSONArray("list");
+        for (int i = 0; i < jsonArray.size(); i++) {
+            String productCode = jsonArray.getJSONObject(i).getString("productCode");
+        }
+        return result;
     }
 
 
@@ -96,6 +115,7 @@ public class getService {
 //        }
 //        return shopCartId;
 //    }
+
 
 
     private ArrayList<JSONObject> initOrder(String commodityDetail){

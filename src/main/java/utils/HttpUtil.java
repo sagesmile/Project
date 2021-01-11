@@ -40,6 +40,7 @@ public class HttpUtil {
          */
         public static HttpURLConnection getConn(String urlStr, Map<String, String> paramMap) throws Exception {
             urlStr = urlStr + "?" + getParamString(paramMap);
+            System.out.println(urlStr);
             HttpURLConnection conn = null;
             //创建URL对象
             URL url = new URL(urlStr);
