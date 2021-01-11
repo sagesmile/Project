@@ -100,7 +100,7 @@ public class AESUtil {
         String tsmall = "tsmall#";
         long timeMillis = System.currentTimeMillis();
         String tssign = tsmall+timeMillis+"#"+url;
-        System.out.println("原文:" + tssign);
+//        System.out.println("原文:" + tssign);
         String code = encryptData(
                 Base64.encode(tssign.getBytes())
                 , Base64.encode(key.getBytes())

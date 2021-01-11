@@ -6,6 +6,7 @@ import org.springframework.core.annotation.Order;
 import utils.AESUtil;
 import utils.HttpUtil;
 
+import javax.xml.ws.Service;
 import java.net.HttpURLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -16,13 +17,15 @@ import java.util.stream.IntStream;
 
 public class getService {
 
-    private static String[] token = {"Bearer afa789b8-9ed7-4ee7-9507-7c7242e9a58a"};
-    private static String[] shoppingcartId = {"b899a3aa33174ff7878cf72bca4d0b8f"};
+    private static String[] token = {"Bearer 8ef75c5f-401d-40bb-baa0-aadcd816f203","Bearer 07ea1649-df6f-4039-b5cb-89b5043f7db0"};
+    private static String[] shoppingcartId = {"10ff72e3f2a246339ed193b5b5cc0447","287400666a1946bfa8a0c1d2cfbc8c1b"};
     private static String challenge[] = {
-            "c28f07807485534fd66ae23a45ccce1f",
+            "178c906e7533fb7e2a71a7b444d772f3",
+            "59b6851c23b658f9db75d8af259d7228"
     };
     private static String validate[] = {
-            "42a55e22767d31f5321f3ca06f777c38",
+            "a2e88b746e2dd8dd8bdbe401256f11ec",
+            "4a892b979b0ea3541adb6d02850890b0"
     };
 
     private static String host = "https://wxmall-lv.topsports.com.cn";
@@ -33,48 +36,94 @@ public class getService {
 
     public static void main(String[] args) {
         getService service = new getService();
-//        String getdetail = service.getdetail("506ca36edc794a43ae0395c7b6133272");
-//        ArrayList<JSONObject> jsonObjects = service.initOrder(getdetail);
-        try {
-            System.out.println(service.search(null));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-//        for (int i = 0; i < jsonObjects.toArray().length; i++) {
-//            System.out.println(jsonObjects.get(i));
-//            service.pushOrder(token[i],jsonObjects.get(i) );
-//        }
+        int moshi = 1;
+        boolean flag = true;
+        String getdetail = null;
+        switch (moshi){
+            //有链接 有库存 定时上架模式
+            case 1:
+                getdetail = service.getdetail("8be887163edc48ae8367fc60a48e8d01");
+                ArrayList<JSONObject> orderJson = service.initOrder(getdetail);
+                while (flag){
+                    getdetail = service.getdetail("8be887163edc48ae8367fc60a48e8d01");
+                    Integer integer = JSONObject.parseObject(getdetail).getJSONObject("data").getInteger("status");
+                    if (integer ==3){
+                        for (int i = 0; i < orderJson.size(); i++) {
+                            service.pushOrder(token[i],orderJson.get(i) );
+                        }
+                        System.out.println(getdetail);
+                        flag = false;
+                    }
+                }
+            //有链接 无库存 补货模式
+            case 2:
 
-//           Integer status = JSONObject.parseObject(getdetail).getJSONObject("data").getInteger("status");
+                while (flag){
+                    getdetail = service.getdetail("");
+                    Integer integer = JSONObject.parseObject(getdetail).getJSONObject("data").getInteger("stock");
+                    if (integer>0){
+                        service.initAndPushOrder(getdetail);
+                        flag = false;
+                    }
+                }
+            //无链接 店铺上新
+            case 3:
+                while(flag){
+                    try {
+                        String id = service.search("CT0979-1071","NKCQ46");
+                        if (id!=null){
+                            getdetail = service.getdetail(id);
+                            ArrayList<JSONObject> jsonObjects = service.initOrder(getdetail);
+                            for (int i = 0; i < jsonObjects.toArray().length; i++) {
+                                service.pushOrder(token[i],jsonObjects.get(i) );
+                            }
+                            System.out.println(getdetail);
+                            flag = false;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            case 4:
+        }
+
 
     }
 
-    private  String search(String keyword) throws Exception{
+
+    /**
+     *
+     * @param keyword 货号
+     * @param shopNo 店铺号
+     * @return
+     * @throws Exception
+     */
+    private  String search(String keyword,String shopNo) throws Exception{
         String url = host+searchUrl;
         HashMap<String, String> map = new HashMap<>();
-        map.put("searchKeyword","");
+        map.put("searchKeyword",keyword);
         map.put("current","1");
         map.put("pageSize","5");
         map.put("sortColumn","");
         map.put("sortType","asc");
         map.put("filterIds","TS300301");
-        map.put("shopNo","");//NKND20
+        map.put("shopNo",shopNo);//NKND20
         map.put("tssign",AESUtil.getTssign(searchUrl).substring(8));
         HttpURLConnection conn = HttpUtil.getConn(url, map);
         String result = HttpUtil.get(conn);
-        ArrayList<String> idList = new ArrayList<>();
         JSONArray jsonArray = JSONObject.parseObject(result).getJSONObject("data").getJSONObject("spu").getJSONArray("list");
-        for (int i = 0; i < jsonArray.size(); i++) {
-            String productCode = jsonArray.getJSONObject(i).getString("productCode");
+        if (!jsonArray.isEmpty()){
+            String id = jsonArray.getJSONObject(0).getString("id");
+            return id;
+        }else{
+            return null;
         }
-        return result;
     }
 
 
     private String getdetail(String id){
         String commodityUrl = getService.commodityUrl + id;
         String url = host+"/shopCommodity/queryShopCommodityDetail/"+id+AESUtil.getTssign(commodityUrl);
-        System.out.println(url);
         String getResult = null;
         try {
             HttpURLConnection conn = HttpUtil.getConn(url, null);
@@ -121,6 +170,7 @@ public class getService {
     private ArrayList<JSONObject> initOrder(String commodityDetail){
         //解析商品信息 productNo、尺码、skuId不需要
         ArrayList<JSONObject> list = new ArrayList<>();
+        Integer cishu = 0;
         JSONObject commodyJson = JSONObject.parseObject(commodityDetail).getJSONObject("data");
         String id = commodyJson.getString("id");
         String productCode = commodyJson.getString("productCode");
@@ -129,7 +179,7 @@ public class getService {
         for (int i = 0; i < skuList.size(); i++) {
             JSONObject skuListJson = skuList.getJSONObject(i);
             Integer stock = skuListJson.getInteger("stock");
-            if (stock >temp*2){
+            if (stock >1){
                 String sizeNo = skuListJson.getString("sizeNo");
                 String sizeCode = skuListJson.getString("sizeCode");
                 String skuNo = skuListJson.getString("skuNo");
@@ -140,7 +190,7 @@ public class getService {
                 JSONArray commodityList = subOrderList.getJSONArray("commodityList");
                 JSONObject commodity = commodityList.getJSONObject(0);
                 commodity.put("productCode",productCode);
-                commodity.put("shoppingcartId",shoppingcartId[temp++]);
+                commodity.put("shoppingcartId",shoppingcartId[cishu]);
                 commodity.put("sizeNo",sizeNo);
                 commodity.put("sizeCode",sizeCode);
                 commodity.put("skuNo",skuNo);
@@ -150,13 +200,57 @@ public class getService {
                 subOrderArray.set(0,subOrderList);
                 orderJson.put("subOrderList",subOrderArray);
                 list.add(orderJson);
+                cishu++;
             }
-            if (temp==shoppingcartId.length){
-                temp=0;
+            if (cishu>=token.length){
                 break;
             }
         }
         return list;
+    }
+
+    private void initAndPushOrder(String commodityDetail){
+        //解析商品信息 productNo、尺码、skuId不需要
+        ArrayList<JSONObject> list = new ArrayList<>();
+        int cishu = 0;
+        JSONObject commodyJson = JSONObject.parseObject(commodityDetail).getJSONObject("data");
+        String id = commodyJson.getString("id");
+        String productCode = commodyJson.getString("productCode");
+        String shopNo = commodyJson.getString("shopNo");
+        JSONArray skuList = commodyJson.getJSONArray("skuList");
+        if (cishu<token.length){
+            for (int i = 0; i < skuList.size(); i++) {
+                JSONObject skuListJson = skuList.getJSONObject(i);
+                Integer stock = skuListJson.getInteger("stock");
+                if (stock >2){
+                    String sizeNo = skuListJson.getString("sizeNo");
+                    String sizeCode = skuListJson.getString("sizeCode");
+                    String skuNo = skuListJson.getString("skuNo");
+                    JSONObject orderJson = JSONObject.parseObject(order);
+                    JSONArray subOrderArray = orderJson.getJSONArray("subOrderList");
+                    JSONObject subOrderList = subOrderArray.getJSONObject(0);
+                    subOrderList.put("shopNo",shopNo);
+                    JSONArray commodityList = subOrderList.getJSONArray("commodityList");
+                    JSONObject commodity = commodityList.getJSONObject(0);
+                    commodity.put("productCode",productCode);
+                    commodity.put("shoppingcartId",shoppingcartId[cishu]);
+                    commodity.put("sizeNo",sizeNo);
+                    commodity.put("sizeCode",sizeCode);
+                    commodity.put("skuNo",skuNo);
+                    commodity.put("shopCommodityId",id);
+                    commodityList.set(0,commodity);
+                    subOrderList.put("commodityList",commodityList);
+                    subOrderArray.set(0,subOrderList);
+                    orderJson.put("subOrderList",subOrderArray);
+                    String token = getService.token[cishu];
+                    System.out.println(token);
+                    new Thread(()->{
+                        pushOrder(token,orderJson);
+                    });
+                    cishu++;
+                }
+            }
+        }
     }
 
 //    private String getTssign(String url){
@@ -167,9 +261,10 @@ public class getService {
         jsonObject.put("validate",validate[temp]);
         jsonObject.put("seccode",validate[temp]+"|jordan");
         jsonObject.put("challenge",challenge[temp]);
+        temp++;
         try {
             String url = host+createOrder+AESUtil.getTssign(createOrder);
-//            System.out.println(HttpUtil.send(url, jsonObject, token));
+            System.out.println(HttpUtil.send(url, jsonObject, token));
         } catch (Exception e) {
             e.printStackTrace();
         }
