@@ -112,7 +112,7 @@ public class HttpUtil {
             conn.setRequestProperty("accept", "*/*");
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36 MicroMessenger/7.0.9.501 NetType/WIFI MiniProgramEnv/Windows WindowsWechat");
             conn.setRequestProperty("Proxy-Connection", "Keep-Alive");
-            conn.setRequestProperty("Referer","https://servicewechat.com/wx71a6af1f91734f18/21/page-frame.html");
+            conn.setRequestProperty("Referer","https://servicewechat.com/wx71a6af1f91734f18/40/page-frame.html");
             conn.setRequestProperty("Accept-Encoding","gzip, deflate, br");
             conn.setRequestProperty("content-type","application/json");
             if(null!=requestMethod && POST.equals(requestMethod)){
