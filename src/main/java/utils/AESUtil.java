@@ -15,6 +15,8 @@ import java.security.Key;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.util.Arrays;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -95,28 +97,25 @@ public class AESUtil {
     }
 
     public static String getTssign(String url){
-        String iv = "f74ae0290a9e4b64";
-        String key = "F3FBA721F9E9233D";
-        String tsmall = "tsmall#";
-        long timeMillis = System.currentTimeMillis();
-        String tssign = tsmall+timeMillis+"#"+url;
-//        System.out.println("原文:" + tssign);
-        String code = encryptData(
-                Base64.encode(tssign.getBytes())
-                , Base64.encode(key.getBytes())
-                , Base64.encode(iv.getBytes())
-        );
+        String tssign = null;
         try {
+            String iv = "f74ae0290a9e4b64";
+            String key = "F3FBA721F9E9233D";
+            String tsmall = "tsmall#";
+            long timeMillis = System.currentTimeMillis();
+            tssign = tsmall+timeMillis+"#"+url;
+//        System.out.println("原文:" + tssign);
+            String code = encryptData(
+                    Base64.encode(tssign.getBytes())
+                    , Base64.encode(key.getBytes())
+                    , Base64.encode(iv.getBytes())
+            );
             code = URLEncoder.encode(code,"utf-8");
             tssign = "?tssign=" + code;
-        } catch (UnsupportedEncodingException e) {
+        }catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
         return tssign;
-    }
-
-    public static void main(String[] args) {
-
     }
 
 }
