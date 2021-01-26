@@ -13,9 +13,9 @@ import org.apache.http.util.EntityUtils;
 import utils.AESUtil;
 import utils.HttpUtil;
 
-import javax.xml.transform.Result;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,16 +24,21 @@ import java.util.List;
 public class CheckUpNew {
 
     private static String[] token = {
-            "Bearer ff349c1e-e2da-43ad-afbe-bc4ad45c62e1",
-            "Bearer 9576dac7-21a6-4f5f-a7ab-f93636ab57d8"
+            "Bearer a8e94c9c-bb81-4f9f-badf-ca7d444f3a06",
+            "Bearer 3b1e14d1-3e1b-42c1-993a-2c221dc38482"
     };
 
     private static String[] shoppingcartId = {
-            "023cb9441d4240218735249bc6ea5f33",
-            "24b2787f15a04bbd97d3e91b2f91d230"
+            "0836a8c1681a4ff3b131d65e7200cad7",
+            "b62f1be64584416da44fe37cca5b1de5"
     };
 
-    private static String itemNo[] = {"DD1162-001","CT0979-602","CV8480-300"};
+    private static String itemNo[] = {
+            "DD2224-200","CT0979-602","BQ6472-202","555112-103","CT0979-107",
+            "DD1666-100","CW7104-601","BQ6931-114","CZ4385-016","DD2822-107",
+            "DD1869-101","DD1869-102","DD1503-101","DD1391-002","dd1503-102",
+            "CW1590-002","DD1391-100","CW1590-100","554724-075",
+    };
 
     private static String host = "https://wxmall-lv.topsports.com.cn";
     private static String searchUrl = "/search/shopCommodity/list";
@@ -56,7 +61,7 @@ public class CheckUpNew {
             if (isNotCode || now-start>540000){
                 challengeList.clear();
                 validateList.clear();
-                System.out.println("-------开始打码！！！-------");
+                System.out.println("-------"+ LocalDateTime.now()+"开始打码！！！-------");
                 for (int i = 0; i < 10; i++) {
                     String getchallenge = checkUpNew.getChallenge(token[0]);
                     if (getchallenge == null){
@@ -72,6 +77,7 @@ public class CheckUpNew {
                     }
                     if (challengeList.size()==token.length && validateList.size()==token.length){
                         isNotCode = false;
+                        start=now;
                         System.out.println("-------打码完成！！！------");
                         break;
                     }
@@ -79,13 +85,16 @@ public class CheckUpNew {
             }
             String commodyId = checkUpNew.searchUpNew();
             try {
-            if (commodyId!=null){
-                String commodyDetail = checkUpNew.getdetail(commodyId);
-                checkUpNew.initAndPush(commodyDetail,challengeList,validateList);
-                isNotCode = true;
-                Thread.sleep(10000);
-            }
-            Thread.sleep(50);
+                if (commodyId!=null){
+                    String commodyDetail = checkUpNew.getdetail(commodyId);
+                    Integer stock = JSONObject.parseObject(commodyDetail).getJSONObject("data").getInteger("stock");
+                    if (stock>0){
+                        checkUpNew.initAndPush(commodyDetail,challengeList,validateList);
+                        isNotCode = true;
+                        Thread.sleep(10000);
+                    }
+                }
+                Thread.sleep(70);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -99,6 +108,7 @@ public class CheckUpNew {
         String productCode = commodyJson.getString("productCode");
         String shopNo = commodyJson.getString("shopNo");
         JSONArray skuList = commodyJson.getJSONArray("skuList");
+        String tssign = AESUtil.getTssign(createOrder);
         for (int i = 0; i < skuList.size(); i++) {
             if (cishu<token.length) {
                 JSONObject skuListJson = skuList.getJSONObject(i);
@@ -107,6 +117,7 @@ public class CheckUpNew {
                     String sizeNo = skuListJson.getString("sizeNo");
                     String sizeCode = skuListJson.getString("sizeCode");
                     String skuNo = skuListJson.getString("skuNo");
+                    System.out.println(skuListJson.getString("sizeEur"));
                     JSONObject orderJson = JSONObject.parseObject(order);
                     JSONArray subOrderArray = orderJson.getJSONArray("subOrderList");
                     JSONObject subOrderList = subOrderArray.getJSONObject(0);
@@ -130,7 +141,7 @@ public class CheckUpNew {
 //                    pushOrder(token, orderJson);
                     new Thread(() -> {
                         System.out.println("提交订单");
-                        pushOrder(token, orderJson);
+                        pushOrder(token, orderJson,tssign);
                     }).start();
                     cishu++;
                 }
@@ -141,26 +152,20 @@ public class CheckUpNew {
         }
     }
 
-    private void pushOrder(String token,JSONObject jsonObject){
+    private void pushOrder(String token,JSONObject jsonObject,String tssign){
         String body = "";
         try {
-            System.out.println("准备！！");
-            String url = host+createOrder+AESUtil.getTssign(createOrder);
-            System.out.println("1");
+            String url = host+createOrder+tssign;
             CloseableHttpClient client = HttpClients.createDefault();
-            System.out.println("2");
 
 
             //创建post方式请求对象
             HttpPost httpPost = new HttpPost(url);
-            System.out.println("3");
 
             //装填参数
             StringEntity s = new StringEntity(jsonObject.toString(), "utf-8");
-            System.out.println("3");
             //设置参数到请求对象中
             httpPost.setEntity(s);
-            System.out.println("5");
             //设置header信息
             httpPost.setHeader(":Host","wxmall.topsports.com.cn");
             httpPost.setHeader("Authorization",token);
@@ -170,12 +175,9 @@ public class CheckUpNew {
             httpPost.setHeader("Referer","https://servicewechat.com/wx71a6af1f91734f18/40/page-frame.html");
             httpPost.setHeader("User-Agent","Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36 MicroMessenger/7.0.9.501 NetType/WIFI MiniProgramEnv/Windows WindowsWechat");
             //执行请求操作，并拿到结果（同步阻塞）
-            System.out.println("6");
             CloseableHttpResponse response = client.execute(httpPost);
-            System.out.println("7");
             //获取结果实体
             HttpEntity entity = response.getEntity();
-            System.out.println("8");
             if (entity != null) {
                 //按指定编码转换结果实体为String类型
                 body = EntityUtils.toString(entity, "utf-8");
@@ -207,7 +209,7 @@ public class CheckUpNew {
         HashMap<String, String> map = new HashMap<>();
         map.put("searchKeyword","");
         map.put("current","1");
-        map.put("pageSize","10");
+        map.put("pageSize","5");
         map.put("sortColumn","upShelfTime");
         map.put("sortType","desc");
         map.put("filterIds","TS100101");
